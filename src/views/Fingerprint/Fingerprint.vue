@@ -1,15 +1,22 @@
 <script setup lang="tsx">
 import { ContentWrap } from '@/components/ContentWrap'
 import { useI18n } from '@/hooks/web/useI18n'
-import { ref, reactive } from 'vue'
-import { ElButton, ElCol, ElInput, ElRow, ElText } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue'
+import { ElButton, ElCol, ElInput, ElRow, ElText, ElBadge, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { Table, TableColumn } from '@/components/Table'
 import { Dialog } from '@/components/Dialog'
-import { Icon } from '@/components/Icon'
 import { useTable } from '@/hooks/web/useTable'
 import { useIcon } from '@/hooks/web/useIcon'
 import { BaseButton } from '@/components/Button'
-import { getFingerprintDataApi, deleteFingerprintDataApi } from '@/api/fingerprint'
+import {
+  getFingerprintDataApi,
+  deleteFingerprintDataApi,
+  getFingerprintVersionApi,
+  getCountByUpdateTimeApi,
+  getFingerprintsByUpdateTimeApi,
+  batchAddFingerprintApi
+} from '@/api/Fingerprint'
 import Detail from './components/Detail.vue'
 const searchicon = useIcon({ icon: 'iconoir:search' })
 const { t } = useI18n()
@@ -33,11 +40,6 @@ const nodeColums = reactive<TableColumn[]>([
     minWidth: 40
   },
   {
-    field: 'rule',
-    label: t('fingerprint.rule'),
-    minWidth: 100
-  },
-  {
     field: 'category',
     label: t('fingerprint.category'),
     minWidth: 30
@@ -46,40 +48,6 @@ const nodeColums = reactive<TableColumn[]>([
     field: 'parent_category',
     label: t('fingerprint.parentCategory'),
     minWidth: 30
-  },
-  {
-    field: 'amount',
-    label: t('fingerprint.amount'),
-    minWidth: 20
-  },
-  {
-    field: 'state',
-    label: t('common.state'),
-    minWidth: 30,
-    formatter: (_: Recordable, __: TableColumn, stateValue: boolean) => {
-      if (stateValue == null) {
-        return <div></div>
-      }
-      let color = ''
-      let flag = ''
-      if (stateValue == true) {
-        color = '#2eb98a'
-        flag = t('common.on')
-      } else {
-        color = 'red'
-        flag = t('common.off')
-      }
-      return (
-        <ElRow gutter={20}>
-          <ElCol span={1}>
-            <Icon icon="clarity:circle-solid" color={color} size={10} />
-          </ElCol>
-          <ElCol span={5}>
-            <ElText type="info">{flag}</ElText>
-          </ElCol>
-        </ElRow>
-      )
-    }
   },
   {
     field: 'action',
@@ -117,11 +85,7 @@ function tableHeaderColor() {
 const dialogVisible = ref(false)
 const addSensitive = async () => {
   fingerprintForm.id = ''
-  fingerprintForm.rule = ''
-  fingerprintForm.category = ''
-  fingerprintForm.parent_category = ''
-  fingerprintForm.name = ''
-  fingerprintForm.state = true
+  fingerprintForm.content = ''
   dialogVisible.value = true
 }
 const closeDialog = () => {
@@ -129,19 +93,11 @@ const closeDialog = () => {
 }
 let fingerprintForm = reactive({
   id: '',
-  name: '',
-  rule: '',
-  category: '',
-  parent_category: '',
-  state: true
+  content: ''
 })
 const edit = (data) => {
   fingerprintForm.id = data.id
-  fingerprintForm.rule = data.rule
-  fingerprintForm.category = data.category
-  fingerprintForm.parent_category = data.parent_category
-  fingerprintForm.name = data.name
-  fingerprintForm.state = data.state
+  fingerprintForm.content = data.rule || data.content || ''
   dialogVisible.value = true
 }
 const delLoading = ref(false)
@@ -181,6 +137,73 @@ const confirmDelete = async () => {
     await delSelect()
   }
 }
+
+// 更新相关的状态
+const updateCount = ref(0)
+const currentVersion = ref('')
+const updateLoading = ref(false)
+
+// 获取版本和数量
+const fetchVersionAndCount = async () => {
+  try {
+    // 获取版本
+    const versionRes = await getFingerprintVersionApi()
+    const version = versionRes.data.version
+    currentVersion.value = version
+
+    // 使用版本获取数量
+    const countRes = await getCountByUpdateTimeApi(version)
+    updateCount.value = Number(countRes.data.count) || 0
+  } catch (error) {
+    console.error('Error fetching version and count:', error)
+    updateCount.value = 0
+  }
+}
+
+// 页面加载时获取版本和数量
+onMounted(() => {
+  fetchVersionAndCount()
+})
+
+// 更新按钮点击处理
+const handleUpdate = async () => {
+  try {
+    // 二次确认
+    await ElMessageBox.confirm(`确定要更新 ${updateCount.value} 条指纹数据吗？`, '确认更新', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    updateLoading.value = true
+
+    // 获取需要更新的指纹列表
+    const fingerprintsRes = await getFingerprintsByUpdateTimeApi(currentVersion.value)
+    const fingerprints = fingerprintsRes.data.data || []
+
+    if (fingerprints.length === 0) {
+      ElMessage.warning('没有需要更新的数据')
+      updateLoading.value = false
+      return
+    }
+
+    // 批量添加指纹
+    await batchAddFingerprintApi(fingerprints)
+
+    ElMessage.success(`成功更新 ${fingerprints.length} 条指纹数据`)
+
+    // 刷新列表和数量
+    await getList()
+    await fetchVersionAndCount()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('Error updating fingerprints:', error)
+      ElMessage.error(error?.message || '更新失败，请稍后重试')
+    }
+  } finally {
+    updateLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -213,6 +236,15 @@ const confirmDelete = async () => {
           </BaseButton>
         </div>
       </ElCol>
+      <ElCol :span="1">
+        <div class="mb-10px">
+          <ElBadge :value="updateCount" :hidden="updateCount === 0" :max="999999">
+            <BaseButton type="primary" :loading="updateLoading" @click="handleUpdate">
+              {{ t('common.update') || '更新' }}
+            </BaseButton>
+          </ElBadge>
+        </div>
+      </ElCol>
     </ElRow>
     <Table
       v-model:pageSize="pageSize"
@@ -238,9 +270,9 @@ const confirmDelete = async () => {
   <Dialog
     v-model="dialogVisible"
     :title="fingerprintForm.id ? $t('common.edit') : $t('common.new')"
-    center
+    width="800px"
     style="border-radius: 15px; box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3)"
-    :maxHeight="350"
+    :maxHeight="550"
   >
     <Detail :closeDialog="closeDialog" :fingerprintForm="fingerprintForm" :getList="getList" />
   </Dialog>

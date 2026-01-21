@@ -11,7 +11,7 @@ import {
   ElText,
   ElMessageBox,
   ElMessage,
-  ElTag,
+  ElUpload,
   ElTooltip,
   ElScrollbar,
   ElDropdownItem,
@@ -21,7 +21,10 @@ import {
   ElBadge,
   ElSwitch,
   ElDrawer,
-  ElSpace
+  ElSpace,
+  UploadInstance,
+  UploadProps,
+  UploadRawFile
 } from 'element-plus'
 import { Table, TableColumn } from '@/components/Table'
 import { useTable } from '@/hooks/web/useTable'
@@ -41,6 +44,7 @@ import {
   updatePluginStatusApi
 } from '@/api/plugins'
 import detail from './detail.vue'
+import { useUserStore } from '@/store/modules/user'
 
 const searchicon = useIcon({ icon: 'iconoir:search' })
 const { t } = useI18n()
@@ -489,6 +493,33 @@ const highlightLog = (text: string) => {
   const regex = new RegExp(`(${searchText})`, 'gi')
   return text.replace(regex, '<mark>$1</mark>')
 }
+const userStore = useUserStore()
+const uploadHeaders = { Authorization: `${userStore.getToken}` }
+const upload = ref<UploadInstance>()
+const handleExceed: UploadProps['onExceed'] = (files) => {
+  upload.value!.clearFiles()
+  const file = files[0] as UploadRawFile
+  upload.value!.handleStart(file)
+}
+
+const handleUploadSuccess = (response) => {
+  console.log(response)
+  if (response.code === 200) {
+    ElMessage.success('Upload succes')
+  } else {
+    ElMessage.error(response.message)
+  }
+  if (response.code == 505) {
+    localStorage.removeItem('plugin_key')
+  }
+  getList()
+  upload.value?.clearFiles()
+}
+const handleFileChange = (_file, fileList) => {
+  if (fileList.length > 0) {
+    upload.value!.submit()
+  }
+}
 </script>
 
 <template>
@@ -537,6 +568,26 @@ const highlightLog = (text: string) => {
               {{ t('plugin.market') }}
             </BaseButton>
           </ElBadge>
+          <ElUpload
+            ref="upload"
+            class="flex items-center"
+            :action="'/api/plugin/import?key=' + (pluginKey || '')"
+            :headers="uploadHeaders"
+            :on-success="handleUploadSuccess"
+            :limit="1"
+            :on-exceed="handleExceed"
+            :auto-upload="false"
+            @change="handleFileChange"
+          >
+            <template #trigger>
+              <BaseButton>
+                <template #icon>
+                  <Icon icon="iconoir:upload" />
+                </template>
+                {{ t('plugin.import') }}
+              </BaseButton>
+            </template>
+          </ElUpload>
         </div>
       </ElCol>
     </ElRow>

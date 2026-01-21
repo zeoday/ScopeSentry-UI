@@ -5,6 +5,7 @@ export type fingerprintData = {
   category: string
   parent_category: string
   state: boolean
+  content?: string
 }
 
 export type fingerprintRespData = {

@@ -68,7 +68,8 @@ const taskColums = reactive<TableColumn[]>([
   {
     field: 'selection',
     type: 'selection',
-    minWidth: 55
+    minWidth: 55,
+    selectable: (row) => !row.isSystem
   },
   {
     field: 'name',
@@ -117,7 +118,7 @@ const taskColums = reactive<TableColumn[]>([
   {
     field: 'action',
     label: t('tableDemo.action'),
-    minWidth: '300',
+    width: 450,
     fixed: 'right',
     formatter: (row, __: TableColumn, _: number) => {
       const handleCommand = (command) => {
