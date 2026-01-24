@@ -27,6 +27,7 @@ interface Project {
 }
 const props = defineProps<{
   projectList: Project[]
+  taskList: { id: string; name: string }[]
 }>()
 const rowStateMap = reactive<Record<string, RowState>>({})
 const searchKeywordsData = [
@@ -326,6 +327,7 @@ const getFilter = () => {
     :handleClose="handleClose"
     :getElTableExpose="getElTableExpose"
     :projectList="$props.projectList"
+    :taskList="$props.taskList"
     :handleFilterSearch="handleFilterSearch"
     :crudSchemas="crudSchemas"
     @update-column-visibility="handleColumnVisibilityChange"

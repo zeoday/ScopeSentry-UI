@@ -36,6 +36,7 @@ interface Project {
 }
 const props = defineProps<{
   projectList: Project[]
+  taskList: { id: string; name: string }[]
 }>()
 const searchKeywordsData = [
   {
@@ -371,6 +372,7 @@ const getFilter = () => {
     :getElTableExpose="getElTableExpose"
     :handleFilterSearch="handleFilterSearch"
     :projectList="$props.projectList"
+    :taskList="$props.taskList"
     :crudSchemas="crudSchemas"
     @update-column-visibility="handleColumnVisibilityChange"
     :searchResultCount="total"

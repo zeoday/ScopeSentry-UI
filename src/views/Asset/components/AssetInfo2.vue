@@ -51,6 +51,7 @@ interface Project {
 }
 const props = defineProps<{
   projectList: Project[]
+  taskList: { id: string; name: string }[]
 }>()
 const searchKeywordsData = [
   {
@@ -851,6 +852,7 @@ const confirmSelectedIcons = () => {
     :index="index"
     :getElTableExpose="getElTableExpose"
     :projectList="$props.projectList"
+    :taskList="$props.taskList"
     :handleFilterSearch="handleFilterSearch"
     :dynamicTags="dynamicTags"
     :handleClose="handleClose"

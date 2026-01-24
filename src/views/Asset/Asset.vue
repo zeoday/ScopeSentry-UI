@@ -13,6 +13,7 @@ import vul from './components/vul.vue'
 import SubdomainTakeover from './components/SubdomainTakeover.vue'
 import { reactive } from 'vue'
 import { getProjectAllApi } from '@/api/project'
+import { getTaskNamesApi } from '@/api/task'
 import RootDomain from './components/RootDomain.vue'
 import APP from './components/APP.vue'
 import MP from './components/MP.vue'
@@ -34,6 +35,17 @@ const getProjectList = async () => {
 }
 getProjectList()
 
+interface TaskNameData {
+  id: string
+  name: string
+}
+const taskList = reactive<TaskNameData[]>([])
+const getTaskList = async () => {
+  const res = await getTaskNamesApi()
+  taskList.splice(0, taskList.length, ...(res.data || []))
+}
+getTaskList()
+
 const handleTabClick = (tab: any) => {
   if (tab.paneName === 'map') {
     push('/map')
@@ -43,34 +55,42 @@ const handleTabClick = (tab: any) => {
 
 <template>
   <ElTabs type="border-card" @tab-click="handleTabClick">
-    <ElTabPane :label="t('asset.assetName')"><AssetInfo2 :projectList="projectList" /></ElTabPane>
-    <ElTabPane label="IP"><IP :projectList="projectList" /></ElTabPane>
+    <ElTabPane :label="t('asset.assetName')"
+      ><AssetInfo2 :projectList="projectList" :taskList="taskList"
+    /></ElTabPane>
+    <ElTabPane label="IP"><IP :projectList="projectList" :taskList="taskList" /></ElTabPane>
     <ElTabPane :label="t('rootDomain.rootDomainName')">
-      <RootDomain :projectList="projectList" />
+      <RootDomain :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
     <ElTabPane :label="t('subdomain.subdomainName')">
-      <Subdomain :projectList="projectList" />
+      <Subdomain :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
     <ElTabPane :label="t('task.subdomainTakeover')">
-      <SubdomainTakeover :projectList="projectList" />
+      <SubdomainTakeover :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
     <ElTabPane :label="t('app.appName')">
-      <APP :projectList="projectList" />
+      <APP :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
     <ElTabPane :label="t('miniProgram.miniProgramName')">
-      <MP :projectList="projectList" />
+      <MP :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
-    <ElTabPane :label="t('URL.URLName')"><URL :projectList="projectList" /></ElTabPane>
-    <ElTabPane :label="t('crawler.crawlerName')"><Crawler :projectList="projectList" /></ElTabPane>
+    <ElTabPane :label="t('URL.URLName')"
+      ><URL :projectList="projectList" :taskList="taskList"
+    /></ElTabPane>
+    <ElTabPane :label="t('crawler.crawlerName')"
+      ><Crawler :projectList="projectList" :taskList="taskList"
+    /></ElTabPane>
     <ElTabPane :label="t('sensitiveInformation.sensitiveInformationName')">
-      <SensitiveInformation :projectList="projectList" />
+      <SensitiveInformation :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
-    <ElTabPane :label="t('dirScan.dirScanName')"><DirScan :projectList="projectList" /></ElTabPane>
+    <ElTabPane :label="t('dirScan.dirScanName')"
+      ><DirScan :projectList="projectList" :taskList="taskList"
+    /></ElTabPane>
     <ElTabPane :label="t('vulnerability.vulnerabilityName')">
-      <vul :projectList="projectList" />
+      <vul :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
     <ElTabPane :label="t('PageMonitoring.pageMonitoringName')">
-      <PageMonitoring :projectList="projectList" />
+      <PageMonitoring :projectList="projectList" :taskList="taskList" />
     </ElTabPane>
     <ElTabPane label="Map" name="map" />
   </ElTabs>

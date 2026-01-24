@@ -19,7 +19,9 @@ import {
   ElMessage,
   ElTreeSelect,
   ElTag,
-  ElSwitch
+  ElSwitch,
+  ElSelect,
+  ElOption
 } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { useIcon } from '@/hooks/web/useIcon'
@@ -44,6 +46,7 @@ const props = defineProps<{
   getElTableExpose: () => void
   handleFilterSearch: (string, any) => void
   projectList: Project[]
+  taskList: { id: string; name: string }[]
   dynamicTags?: string[]
   handleClose?: (string) => void
   openAggregation?: () => void
@@ -264,12 +267,23 @@ interface Project {
 }
 const projectLoading = ref(false)
 const projectValue = ref([])
+const taskValue = ref([])
 const filterChange = async () => {
   console.log(projectValue.value)
-  props.handleFilterSearch(searchParams.value, { project: projectValue.value })
+  console.log(taskValue.value)
+  const filterData: { [key: string]: any } = { project: projectValue.value }
+  filterData.task = taskValue.value
+  props.handleFilterSearch(searchParams.value, filterData)
 }
 watch(
   () => projectValue.value,
+  (newValue) => {
+    filterChange()
+  }
+)
+
+watch(
+  () => taskValue.value,
   (newValue) => {
     filterChange()
   }
@@ -388,14 +402,15 @@ const openCreateTask = async () => {
         </ElButton>
       </ElCol>
     </ElRow> -->
-    <ElRow class="row-bg" :gutter="20">
-      <ElCol :span="6">
+    <div class="search-toolbar">
+      <div class="search-input-container">
         <ElAutocomplete
           v-model="searchParams"
           :fetch-suggestions="querySearch"
           :placeholder="t('form.input')"
           popperClass="my-autocomplete"
           @select="handleSelect"
+          class="search-autocomplete"
           style="width: 100%"
         >
           <template #append>
@@ -412,18 +427,38 @@ const openCreateTask = async () => {
             </span>
           </template>
         </ElAutocomplete>
-      </ElCol>
-      <ElCol :span="1.5"
-        ><ElButton type="primary" :icon="searchicon" @click="$props.handleSearch(searchParams)">
-          {{ t('form.input') }}
-        </ElButton>
-      </ElCol>
-      <ElCol :span="1.5">
-        <ElButton type="primary" @click="openExport" :icon="exporticon">
-          {{ t('asset.export') }}
-        </ElButton>
-      </ElCol>
-      <ElCol :span="4">
+      </div>
+      <ElButton
+        type="primary"
+        :icon="searchicon"
+        @click="$props.handleSearch(searchParams)"
+        class="toolbar-btn"
+      >
+        {{ t('form.input') }}
+      </ElButton>
+      <ElButton type="primary" @click="openExport" :icon="exporticon" class="toolbar-btn">
+        {{ t('asset.export') }}
+      </ElButton>
+      <div class="task-select-container">
+        <ElSelect
+          v-model="taskValue"
+          :placeholder="t('task.taskName')"
+          multiple
+          filterable
+          collapse-tags
+          :max-collapse-tags="1"
+          class="task-select"
+          clearable
+        >
+          <ElOption
+            v-for="taskItem in $props.taskList"
+            :key="taskItem.id"
+            :label="taskItem.name"
+            :value="taskItem.name"
+          />
+        </ElSelect>
+      </div>
+      <div class="project-select-container">
         <ElTreeSelect
           :loading="projectLoading"
           v-model="projectValue"
@@ -434,63 +469,60 @@ const openCreateTask = async () => {
           show-checkbox
           collapse-tags
           :max-collapse-tags="1"
+          class="project-select"
         />
-      </ElCol>
-      <ElCol :span="1.5" :xs="1.5" :sm="1.5" :md="1.5">
-        <ElDropdown trigger="click">
-          <ElButton plain class="custom-button align-bottom">
-            {{ t('common.operation') }}
-            <ElIcon class="el-icon--right"><elDropdownicon /></ElIcon>
-          </ElButton>
-          <template #dropdown>
-            <ElDropdownMenu>
-              <ElDropdownItem :icon="deleteicon" @click="delSelect">{{
-                t('common.delete')
-              }}</ElDropdownItem>
-              <ElDropdownItem :icon="TASKicon" @click="openCreateTask">{{
-                t('task.addTask')
-              }}</ElDropdownItem>
-            </ElDropdownMenu>
-          </template>
-        </ElDropdown>
-      </ElCol>
-      <ElCol :span="1" style="display: flex; align-items: center">
-        <ElDropdown>
-          <div class="custom-dropdown">
-            <Icon icon="ant-design:setting-outlined" class="cursor-pointer" />
-          </div>
-          <template #dropdown>
-            <ElDropdownMenu>
-              <ElDropdownItem v-for="(field, i) in crudSchemas" :key="i">
-                <div class="dropdown-item" v-if="field.field != 'selection'">
-                  <span class="label-text">{{ field.label }}</span>
-                  <ElSwitch
-                    size="small"
-                    v-model="field.hidden"
-                    :active-value="false"
-                    :inactive-value="true"
-                    @change="handleSwitchChange(field)"
-                  />
-                </div>
-              </ElDropdownItem>
-              <ElDropdownItem v-if="$props.index == 'asset'">
-                <span class="label-text">{{ t('asset.Chart') }}</span>
+      </div>
+      <ElDropdown trigger="click" class="toolbar-dropdown">
+        <ElButton plain class="custom-button toolbar-btn">
+          {{ t('common.operation') }}
+          <ElIcon class="el-icon--right"><elDropdownicon /></ElIcon>
+        </ElButton>
+        <template #dropdown>
+          <ElDropdownMenu>
+            <ElDropdownItem :icon="deleteicon" @click="delSelect">{{
+              t('common.delete')
+            }}</ElDropdownItem>
+            <ElDropdownItem :icon="TASKicon" @click="openCreateTask">{{
+              t('task.addTask')
+            }}</ElDropdownItem>
+          </ElDropdownMenu>
+        </template>
+      </ElDropdown>
+      <ElDropdown class="toolbar-dropdown">
+        <div class="custom-dropdown">
+          <Icon icon="ant-design:setting-outlined" class="cursor-pointer" />
+        </div>
+        <template #dropdown>
+          <ElDropdownMenu>
+            <ElDropdownItem v-for="(field, i) in crudSchemas" :key="i">
+              <div class="dropdown-item" v-if="field.field != 'selection'">
+                <span class="label-text">{{ field.label }}</span>
                 <ElSwitch
                   size="small"
-                  v-model="localStatisticsHidden"
+                  v-model="field.hidden"
                   :active-value="false"
                   :inactive-value="true"
-                  @change="changeStatisticsHidden(localStatisticsHidden)"
+                  @change="handleSwitchChange(field)"
                 />
-              </ElDropdownItem>
-              <ElDropdownItem divided>
-                <ElButton style="width: 100%" type="primary" @click="refreshPage">Save</ElButton>
-              </ElDropdownItem>
-            </ElDropdownMenu>
-          </template>
-        </ElDropdown>
-      </ElCol>
-      <ElCol :span="2" style="display: flex; align-items: center" v-if="index == 'asset'">
+              </div>
+            </ElDropdownItem>
+            <ElDropdownItem v-if="$props.index == 'asset'">
+              <span class="label-text">{{ t('asset.Chart') }}</span>
+              <ElSwitch
+                size="small"
+                v-model="localStatisticsHidden"
+                :active-value="false"
+                :inactive-value="true"
+                @change="changeStatisticsHidden(localStatisticsHidden)"
+              />
+            </ElDropdownItem>
+            <ElDropdownItem divided>
+              <ElButton style="width: 100%" type="primary" @click="refreshPage">Save</ElButton>
+            </ElDropdownItem>
+          </ElDropdownMenu>
+        </template>
+      </ElDropdown>
+      <div class="segment-container" v-if="index == 'asset'">
         <div class="segment-control">
           <div
             class="segment"
@@ -511,19 +543,18 @@ const openCreateTask = async () => {
             </ElIcon>
           </div>
         </div>
-      </ElCol>
-      <ElCol :span="2" :xs="2" :sm="2" :md="2">
-        <ElButton
-          type="success"
-          @click="$props.openAggregation"
-          :icon="aggregationIcon"
-          v-if="index == 'SensitiveResult'"
-        >
-          {{ t('project.aggregation') }}
-        </ElButton>
-      </ElCol>
-    </ElRow>
-    <ElRow style="margin-top: 10px">
+      </div>
+      <ElButton
+        type="success"
+        @click="$props.openAggregation"
+        :icon="aggregationIcon"
+        v-if="index == 'SensitiveResult'"
+        class="toolbar-btn"
+      >
+        {{ t('project.aggregation') }}
+      </ElButton>
+    </div>
+    <ElRow class="result-info-row">
       <ElCol :span="24">
         <div class="flex gap-2" style="flex-wrap: wrap">
           <span style="color: #888">{{ t('asset.total') }}</span>
@@ -627,6 +658,414 @@ const openCreateTask = async () => {
   </Dialog>
 </template>
 <style scoped>
+/* 搜索工具栏 - 使用 flexbox 布局 */
+.search-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  width: 100%;
+  padding: 0;
+  min-height: 40px;
+  margin-bottom: 10px;
+}
+
+/* 搜索框容器 - 占据主要空间但有限制 */
+.search-input-container {
+  flex: 1 1 600px;
+  min-width: 500px;
+  max-width: 700px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.search-autocomplete {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* 确保 ElAutocomplete 输入框高度一致 */
+.search-autocomplete :deep(.el-input__wrapper) {
+  height: 40px;
+  box-shadow: 0 0 0 1px var(--el-input-border-color, var(--el-border-color)) inset;
+  width: 100% !important;
+}
+
+/* 确保 ElAutocomplete 容器宽度 */
+.search-autocomplete :deep(.el-autocomplete) {
+  width: 100% !important;
+  display: block;
+}
+
+.search-autocomplete :deep(.el-input) {
+  width: 100% !important;
+}
+
+.search-autocomplete :deep(.el-input__inner) {
+  height: 38px;
+  line-height: 38px;
+}
+
+/* 工具栏按钮 */
+.toolbar-btn {
+  flex-shrink: 1;
+  white-space: nowrap;
+  height: 40px;
+  padding: 0 20px;
+  margin: 0;
+  margin-right: 6px;
+  min-width: fit-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 任务选择器 */
+.task-select-container {
+  flex-shrink: 1;
+  width: 200px;
+  min-width: 150px;
+  max-width: 200px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.task-select {
+  width: 100%;
+}
+
+/* 确保 ElSelect 高度一致 */
+.task-select :deep(.el-select__wrapper) {
+  height: 40px;
+  box-shadow: 0 0 0 1px var(--el-input-border-color, var(--el-border-color)) inset;
+}
+
+.task-select :deep(.el-select__placeholder) {
+  line-height: 38px;
+}
+
+/* 项目选择器 */
+.project-select-container {
+  flex-shrink: 1;
+  width: 200px;
+  min-width: 150px;
+  max-width: 200px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.project-select {
+  width: 100%;
+}
+
+/* 确保 ElTreeSelect 高度一致 */
+.project-select :deep(.el-select__wrapper) {
+  height: 40px;
+  box-shadow: 0 0 0 1px var(--el-input-border-color, var(--el-border-color)) inset;
+}
+
+.project-select :deep(.el-select__placeholder) {
+  line-height: 38px;
+}
+
+/* 下拉菜单 */
+.toolbar-dropdown {
+  flex-shrink: 1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+  min-width: fit-content;
+}
+
+/* 确保下拉菜单中的按钮高度一致 */
+.toolbar-dropdown :deep(.el-button) {
+  height: 40px;
+  padding: 0 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toolbar-dropdown .custom-button {
+  height: 40px;
+  padding: 0 15px;
+}
+
+.toolbar-dropdown .custom-dropdown {
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+  border: 1px solid var(--el-border-color);
+}
+
+.toolbar-dropdown .custom-dropdown:hover {
+  background-color: var(--el-fill-color-light);
+  border-color: var(--el-border-color-hover);
+}
+
+/* 分段控制器 */
+.segment-container {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  margin-right: 6px;
+  min-width: 80px;
+  order: 999;
+}
+
+.segment-control {
+  display: flex;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 40px;
+}
+
+.segment {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: #fff;
+  min-width: 40px;
+}
+
+.segment:hover {
+  background-color: #f5f7fa;
+}
+
+.segment.active {
+  background-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.segment.active:hover {
+  background-color: var(--el-color-primary);
+}
+
+/* 响应式设计 */
+@media (max-width: 1600px) {
+  .search-input-container {
+    flex: 1 1 550px;
+    min-width: 500px;
+    max-width: 650px;
+  }
+
+  .task-select-container {
+    width: 180px;
+    min-width: 160px;
+  }
+
+  .project-select-container {
+    width: 180px;
+    min-width: 160px;
+  }
+
+  .segment-container {
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 1500px) {
+  .search-input-container {
+    flex: 1 1 450px;
+    min-width: 350px;
+    max-width: 550px;
+  }
+
+  .toolbar-btn {
+    padding: 0 15px;
+    font-size: 14px;
+  }
+
+  .task-select-container {
+    width: 160px;
+    min-width: 140px;
+  }
+
+  .project-select-container {
+    width: 160px;
+    min-width: 140px;
+  }
+
+  .segment-container {
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 1400px) {
+  .search-input-container {
+    flex: 1 1 380px;
+    min-width: 300px;
+    max-width: 450px;
+  }
+
+  .toolbar-btn {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .task-select-container {
+    width: 150px;
+    min-width: 120px;
+  }
+
+  .project-select-container {
+    width: 150px;
+    min-width: 120px;
+  }
+
+  .segment-container {
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 1450px) {
+  .search-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .search-input-container {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
+    order: 1;
+    margin-bottom: 8px;
+  }
+
+  .toolbar-btn,
+  .task-select-container,
+  .project-select-container,
+  .toolbar-dropdown {
+    order: 2;
+  }
+
+  .segment-container {
+    order: 3;
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 1300px) {
+  .search-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .search-input-container {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
+    order: 1;
+    margin-bottom: 8px;
+  }
+
+  .toolbar-btn,
+  .task-select-container,
+  .project-select-container,
+  .toolbar-dropdown,
+  .segment-container {
+    order: 2;
+    flex-shrink: 1;
+  }
+
+  .toolbar-btn {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .segment-container {
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 1200px) {
+  .search-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    min-height: auto;
+    padding-bottom: 8px;
+  }
+
+  .search-input-container {
+    flex: 1 1 100%;
+    min-width: 100%;
+    order: 1;
+    margin-bottom: 8px;
+  }
+
+  .toolbar-btn,
+  .task-select-container,
+  .project-select-container,
+  .toolbar-dropdown,
+  .segment-container {
+    order: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-toolbar {
+    gap: 6px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+  }
+
+  .toolbar-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .task-select-container {
+    width: 100%;
+    min-width: 100%;
+    order: 2;
+    margin-bottom: 6px;
+  }
+
+  .project-select-container {
+    width: 100%;
+    min-width: 100%;
+    order: 2;
+    margin-bottom: 6px;
+  }
+}
+
+/* 结果信息行 */
+.result-info-row {
+  margin-top: 10px;
+  clear: both;
+}
+
+@media (max-width: 1200px) {
+  .result-info-row {
+    margin-top: 16px;
+  }
+}
+
+/* 原有样式 */
 .custom-button:hover {
   background-color: transparent !important;
   color: inherit !important;
@@ -634,54 +1073,42 @@ const openCreateTask = async () => {
   border-color: inherit !important;
   border-width: 1px !important;
 }
+
 .my-autocomplete .el-scrollbar__view {
   max-height: 300px;
   overflow-y: auto;
 }
+
 .my-autocomplete li {
   line-height: normal;
   padding: 7px;
 }
+
 .my-autocomplete li .name {
   text-overflow: ellipsis;
   overflow: hidden;
 }
+
 .my-autocomplete li .addr {
   font-size: 12px;
   color: #b4b4b4;
 }
+
 .my-autocomplete li .highlighted .addr {
   color: #ddd;
 }
+
 .custom-dropdown:focus-visible {
   outline: unset;
 }
+
 .dropdown-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .label-text {
-  margin-right: 10px; /* 设置标签与开关之间的间距 */
-}
-.segment-control {
-  display: flex;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  overflow: hidden;
-  flex-wrap: wrap;
-}
-
-.segment {
-  flex: 1;
-  text-align: center;
-  padding: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.segment.active {
-  background-color: #007bff;
-  color: white;
+  margin-right: 10px;
 }
 </style>

@@ -45,6 +45,7 @@ interface Project {
 }
 const props = defineProps<{
   projectList: Project[]
+  taskList: { id: string; name: string }[]
 }>()
 const searchKeywordsData = [
   {
@@ -556,6 +557,7 @@ const drawerAggregationData = computed<SensitiveAggregation[]>(() => {
     :getElTableExpose="getElTableExpose"
     :handleFilterSearch="handleFilterSearch"
     :projectList="$props.projectList"
+    :taskList="$props.taskList"
     :openAggregation="openAggregation"
     :dynamicTags="dynamicTags"
     :handleClose="handleClose"

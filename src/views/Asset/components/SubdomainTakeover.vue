@@ -27,6 +27,7 @@ interface Project {
 }
 const props = defineProps<{
   projectList: Project[]
+  taskList: { id: string; name: string }[]
 }>()
 const searchKeywordsData = [
   {
@@ -309,6 +310,7 @@ const getFilter = () => {
     :index="index"
     :getElTableExpose="getElTableExpose"
     :projectList="$props.projectList"
+    :taskList="$props.taskList"
     :handleFilterSearch="handleFilterSearch"
     :crudSchemas="crudSchemas"
     :dynamicTags="dynamicTags"

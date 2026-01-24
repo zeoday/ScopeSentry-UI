@@ -313,3 +313,12 @@ export const syancProjectApi = (
 ): Promise<IResponse<commonRespData>> => {
   return request.post({ url: '/api/task/sync', data: { ids, option, project, tag, name } })
 }
+
+interface TaskNameData {
+  id: string
+  name: string
+}
+
+export const getTaskNamesApi = (): Promise<IResponse<TaskNameData[]>> => {
+  return request.get({ url: '/api/task/names' })
+}
