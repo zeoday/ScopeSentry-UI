@@ -573,7 +573,10 @@ export default {
     nameMsg: 'Please enter fingerprint name',
     ruleMsg: 'Please enter rule content',
     parentCategory: 'Parent Category',
-    amount: 'Asset Quantity'
+    amount: 'Asset Quantity',
+    visualGeneratorTip: 'Tip: You can perform visual fingerprint generation at',
+    visualGeneratorLink: 'https://plugin.scope-sentry.top/fingers',
+    visualGeneratorAction: 'to quickly generate fingerprints'
   },
   plugin: {
     name: 'Name',

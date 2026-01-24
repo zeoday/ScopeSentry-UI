@@ -569,7 +569,10 @@ export default {
     nameMsg: '请输入指纹名称',
     ruleMsg: '请输入规则内容',
     parentCategory: '归类',
-    amount: '资产数量'
+    amount: '资产数量',
+    visualGeneratorTip: '提示：您可以在',
+    visualGeneratorLink: 'https://plugin.scope-sentry.top/fingers',
+    visualGeneratorAction: '快速生成指纹'
   },
   plugin: {
     name: '插件名称',

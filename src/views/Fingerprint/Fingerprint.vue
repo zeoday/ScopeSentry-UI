@@ -274,6 +274,21 @@ const handleUpdate = async () => {
     style="border-radius: 15px; box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3)"
     :maxHeight="550"
   >
+    <ElRow style="margin-bottom: 15px">
+      <ElCol :span="24">
+        <ElText class="mx-1" style="color: #409eff; font-size: 14px">
+          {{ t('fingerprint.visualGeneratorTip') }}
+          <a
+            href="https://plugin.scope-sentry.top/fingers"
+            target="_blank"
+            style="color: #409eff; text-decoration: underline"
+          >
+            {{ t('fingerprint.visualGeneratorLink') }}
+          </a>
+          {{ t('fingerprint.visualGeneratorAction') }}
+        </ElText>
+      </ElCol>
+    </ElRow>
     <Detail :closeDialog="closeDialog" :fingerprintForm="fingerprintForm" :getList="getList" />
   </Dialog>
 </template>

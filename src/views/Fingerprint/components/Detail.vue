@@ -3,7 +3,7 @@ import { ElButton } from 'element-plus'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { toRefs } from '@vueuse/core'
-import { updateFingerprintDataApi, addFingerprintDataApi } from '@/api/fingerprint'
+import { updateFingerprintDataApi, addFingerprintDataApi } from '@/api/Fingerprint'
 import * as monaco from 'monaco-editor'
 
 const { t } = useI18n()
