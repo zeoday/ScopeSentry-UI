@@ -239,7 +239,7 @@ const handleUpdate = async () => {
       <ElCol :span="1">
         <div class="mb-10px">
           <ElBadge :value="updateCount" :hidden="updateCount === 0" :max="999999">
-            <BaseButton type="primary" :loading="updateLoading" @click="handleUpdate">
+            <BaseButton type="success" :loading="updateLoading" @click="handleUpdate">
               {{ t('common.update') || '更新' }}
             </BaseButton>
           </ElBadge>

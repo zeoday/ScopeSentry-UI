@@ -17,7 +17,9 @@ import RootDomain from './components/RootDomain.vue'
 import APP from './components/APP.vue'
 import MP from './components/MP.vue'
 import IP from './components/IP.vue'
+import { useRouter } from 'vue-router'
 const { t } = useI18n()
+const { push } = useRouter()
 interface Project {
   value: string
   label: string
@@ -31,10 +33,16 @@ const getProjectList = async () => {
   })
 }
 getProjectList()
+
+const handleTabClick = (tab: any) => {
+  if (tab.paneName === 'map') {
+    push('/map')
+  }
+}
 </script>
 
 <template>
-  <ElTabs type="border-card">
+  <ElTabs type="border-card" @tab-click="handleTabClick">
     <ElTabPane :label="t('asset.assetName')"><AssetInfo2 :projectList="projectList" /></ElTabPane>
     <ElTabPane label="IP"><IP :projectList="projectList" /></ElTabPane>
     <ElTabPane :label="t('rootDomain.rootDomainName')">
@@ -64,5 +72,6 @@ getProjectList()
     <ElTabPane :label="t('PageMonitoring.pageMonitoringName')">
       <PageMonitoring :projectList="projectList" />
     </ElTabPane>
+    <ElTabPane label="Map" name="map" />
   </ElTabs>
 </template>
