@@ -18,9 +18,7 @@ import RootDomain from './components/RootDomain.vue'
 import APP from './components/APP.vue'
 import MP from './components/MP.vue'
 import IP from './components/IP.vue'
-import { useRouter } from 'vue-router'
 const { t } = useI18n()
-const { push } = useRouter()
 interface Project {
   value: string
   label: string
@@ -48,7 +46,8 @@ getTaskList()
 
 const handleTabClick = (tab: any) => {
   if (tab.paneName === 'map') {
-    push('/map')
+    // 跳转到同一网站的map项目
+    window.location.href = '/map'
   }
 }
 </script>

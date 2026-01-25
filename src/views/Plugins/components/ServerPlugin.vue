@@ -484,15 +484,135 @@ const filteredLogContent = computed(() => {
   return lines.filter((line) => line.toLowerCase().includes(searchText.toLowerCase())).join('\n')
 })
 
-// 高亮搜索关键词
-const highlightLog = (text: string) => {
-  if (!logSearchText.value || !text) {
-    return text
-  }
-  const searchText = logSearchText.value
-  const regex = new RegExp(`(${searchText})`, 'gi')
-  return text.replace(regex, '<mark>$1</mark>')
+/**
+ * HTML转义函数 - 防止XSS攻击
+ */
+const escapeHtml = (text: string): string => {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
 }
+
+/**
+ * 验证颜色值是否安全
+ * 只允许十六进制颜色 (#rrggbb) 或 rgb/rgba 格式
+ */
+const isValidColor = (color: string): boolean => {
+  if (!color) return false
+  color = color.trim()
+
+  // 检查是否包含危险字符
+  if (/[<>'"`]/.test(color) || /javascript:/i.test(color) || /on\w+=/i.test(color)) {
+    return false
+  }
+
+  // 验证十六进制颜色格式 #rrggbb 或 #rgb
+  const hexPattern = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/
+  if (hexPattern.test(color)) {
+    return true
+  }
+
+  // 验证 rgb/rgba 格式
+  const rgbPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)$/
+  if (rgbPattern.test(color)) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * 解析日志中的 <color> 标签
+ * 格式: <color value="#ff6b6b">文字</color> 或 <color value="#51cf66" bold>文字</color>
+ *
+ * @param text 原始日志文本
+ * @returns 解析后的HTML字符串（已转义，安全）
+ */
+const parseColorTags = (text: string): string => {
+  if (!text) return ''
+
+  // 匹配 <color value="颜色值" bold>内容</color> 标签
+  // 支持格式:
+  //   <color value="#ff6b6b">文字</color>
+  //   <color value="#51cf66" bold>文字</color>
+  const colorTagRegex =
+    /<color\s+value=["']([^"']+)["'](?:\s+bold)?\s*>((?:[^<]|<(?!\/color>))*?)<\/color>/gi
+
+  return text.replace(colorTagRegex, (match, colorValue, content) => {
+    // 验证颜色值
+    if (!isValidColor(colorValue)) {
+      // 如果颜色值不安全，返回转义后的原始文本
+      return escapeHtml(match)
+    }
+
+    // 检查是否有 bold 属性
+    const isBold = /\s+bold\s*>/i.test(match)
+
+    // 转义内容，防止XSS
+    const safeContent = escapeHtml(content)
+
+    // 构建样式
+    const styles = [`color: ${colorValue}`]
+    if (isBold) {
+      styles.push('font-weight: bold')
+    }
+
+    // 返回安全的HTML标签
+    return `<span style="${styles.join('; ')}">${safeContent}</span>`
+  })
+}
+
+/**
+ * 渲染日志内容（解析颜色标签 + 搜索高亮）
+ */
+const renderLogContent = (text: string): string => {
+  if (!text) return ''
+
+  // 1. 先解析颜色标签
+  let result = parseColorTags(text)
+
+  // 2. 转义其他所有HTML标签（除了我们已经生成的span标签）
+  // 先标记我们生成的span标签
+  const tempMarker = '___COLOR_SPAN___'
+  const spanMatches: string[] = []
+  result = result.replace(/<span style="[^"]+">[^<]*<\/span>/g, (match) => {
+    spanMatches.push(match)
+    return tempMarker + (spanMatches.length - 1) + tempMarker
+  })
+
+  // 转义所有剩余的HTML
+  result = escapeHtml(result)
+
+  // 恢复我们的span标签
+  spanMatches.forEach((match, index) => {
+    result = result.replace(tempMarker + index + tempMarker, match)
+  })
+
+  // 3. 如果有搜索文本，再应用搜索高亮
+  if (logSearchText.value) {
+    const searchText = logSearchText.value
+    const escapedSearchText = escapeHtml(searchText)
+    const regex = new RegExp(`(${escapedSearchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+
+    result = result.replace(regex, (match) => {
+      // 如果匹配的内容已经在span标签内，在span内部添加mark
+      if (match.includes('<span')) {
+        return match.replace(/(<span[^>]*>)(.*?)(<\/span>)/g, (_, openTag, content, closeTag) => {
+          const contentRegex = new RegExp(
+            `(${escapedSearchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+            'gi'
+          )
+          const highlightedContent = content.replace(contentRegex, '<mark>$1</mark>')
+          return `${openTag}${highlightedContent}${closeTag}`
+        })
+      }
+      return `<mark>${match}</mark>`
+    })
+  }
+
+  return result
+}
+
 const userStore = useUserStore()
 const uploadHeaders = { Authorization: `${userStore.getToken}` }
 const upload = ref<UploadInstance>()
@@ -661,11 +781,15 @@ const handleFileChange = (_file, fileList) => {
             <div
               v-for="(line, index) in filteredLogContent.split('\n')"
               :key="index"
-              v-html="highlightLog(line)"
+              v-html="renderLogContent(line)"
             ></div>
           </div>
           <div v-else-if="logContent">
-            {{ logContent }}
+            <div
+              v-for="(line, index) in logContent.split('\n')"
+              :key="index"
+              v-html="renderLogContent(line)"
+            ></div>
           </div>
           <div v-else style="color: #888; text-align: center; padding: 40px">
             {{ t('common.noData') }}
@@ -720,4 +844,12 @@ const handleFileChange = (_file, fileList) => {
   </Dialog>
 </template>
 
-<style scoped lang="less"></style>
+<style scoped lang="less">
+// 确保搜索高亮的mark标签在深色背景下可见
+:deep(mark) {
+  background-color: #ffd700;
+  color: #000;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+</style>
